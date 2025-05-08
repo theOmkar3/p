@@ -1,0 +1,83 @@
+#include <p18f4550.h>
+
+// Define control and data ports
+#define LCD_EN LATAbits.LA1
+#define LCD_RS LATAbits.LA0
+#define LCDPORT LATB
+
+// Delay function
+void lcd_delay(unsigned int time)
+{
+    unsigned int i, j;
+    for(i = 0; i < time; i++)
+    {
+        for(j = 0; j < 100; j++);
+    }
+}
+
+// Send command to LCD
+void SendInstruction(unsigned char command)
+{
+    LCD_RS = 0;          // Instruction mode
+    LCDPORT = command;   // Send command to LCD
+    LCD_EN = 1;          // Enable high
+    lcd_delay(10);
+    LCD_EN = 0;          // Falling edge to latch command
+    lcd_delay(10);
+}
+
+// Send data to LCD
+void SendData(unsigned char lcddata)
+{
+    LCD_RS = 1;          // Data mode
+    LCDPORT = lcddata;   // Send data to LCD
+    LCD_EN = 1;          // Enable high
+    lcd_delay(10);
+    LCD_EN = 0;          // Falling edge to latch data
+    lcd_delay(10);
+}
+
+// LCD initialization
+void InitLCD(void)
+{
+    ADCON1 = 0x0F;       // Make PORTA digital
+    TRISB = 0x00;        // PORTB as output (D0–D7)
+    TRISAbits.TRISA0 = 0; // RS pin as output
+    TRISAbits.TRISA1 = 0; // EN pin as output
+
+    lcd_delay(100);          // Power-on delay
+
+    SendInstruction(0x38);   // 8-bit, 2-line, 5x7 dots
+    SendInstruction(0x06);   // Entry mode
+    SendInstruction(0x0C);   // Display ON, Cursor OFF
+    SendInstruction(0x01);   // Clear display
+    SendInstruction(0x80);   // Start from first line
+}
+
+// Main program
+void main(void)
+{
+    unsigned char *String1 = "Microembedded";
+    unsigned char *String2 = "PIC-18F Board";
+
+    InitLCD(); // Initialize LCD
+
+    // Print first line
+    while(*String1)
+    {
+        SendData(*String1);
+        String1++;
+    }
+
+    // Set cursor to second line
+    SendInstruction(0xC0);
+
+    // Print second line
+    while(*String2)
+    {
+        SendData(*String2);
+        String2++;
+    }
+
+    while(1); // Infinite loop
+}
